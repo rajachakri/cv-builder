@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ResumeCraft — Modern Free CV Builder</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+            serif: ['Merriweather', 'serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Physical A4 Paper Canvas (210mm x 297mm) */
+    .a4-viewport {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      padding: 10px 0 40px 0;
+    }
+    .a4-paper {
+      width: 210mm;
+      min-height: 297mm;
+      background: #ffffff !important;
+      color: #0f172a !important;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      margin: 0 auto;
+      box-sizing: border-box;
+      transform-origin: top center;
+      transition: transform 0.2s ease;
+      position: relative;
+    }
+
+    /* Print & Export Rules: Hides all UI, ads, timers, and sliders in PDF */
+    @media print {
+      body {
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .no-print, .ad-slot, .app-header, .app-footer, #form-panel, #timer-container, #slider-container, #admin-modal, .preview-toolbar {
+        display: none !important;
+      }
+      #preview-panel, .a4-viewport {
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .a4-paper {
+        box-shadow: none !important;
+        margin: 0 !important;
+        width: 100% !important;
+        min-height: 297mm !important;
+        transform: scale(1) !important;
+        border-radius: 0 !important;
+      }
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #090d16; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  </style>
+</head>
+<body class="bg-[#0b0f19] text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+  <!-- ================= TOP NAVIGATION BAR ================= -->
+  <header class="app-header no-print sticky top-0 z-40 bg-[#0f172a]/95 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-[1720px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+        </div>
+        <div>
+          <span class="text-xl font-extrabold bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent font-display tracking-tight">ResumeCraft</span>
+          <span class="hidden sm:inline-block ml-2 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">100% Free & No Ads in PDF</span>
+        </div>
+      </div>
+
+      <!-- View Switcher -->
+      <div class="hidden md:flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
+        <button onclick="setViewMode('split')" id="btn-view-split" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white shadow-sm transition">Split View</button>
+        <button onclick="setViewMode('form')" id="btn-view-form" class="px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-white transition">Editor Only</button>
+        <button onclick="setViewMode('preview')" id="btn-view-preview" class="px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-white transition">Full Preview</button>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <button onclick="openAdminModal()" class="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg border border-amber-500/30 transition shadow-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          <span>Admin Settings</span>
+        </button>
+
+        <button onclick="loadSampleData()" class="hidden sm:inline-block px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition">
+          Load Sample
+        </button>
+
+        <button onclick="downloadPDF()" class="inline-flex items-center space-x-2 px-4 py-2 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 rounded-lg shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition transform active:scale-95">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          <span>Download Free PDF</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ================= TOP COUNTDOWN TIMER (ENABLE / DISABLE) ================= -->
+  <section id="timer-container" class="no-print w-full bg-gradient-to-r from-indigo-950/80 via-slate-900 to-indigo-950/80 border-b border-indigo-500/30 py-2.5">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center space-x-3 text-center sm:text-left">
+        <span class="flex h-2.5 w-2.5 relative">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+        </span>
+        <span id="timer-headline" class="text-xs sm:text-sm font-semibold text-indigo-200">
+          🔥 Limited Time: Free ATS Resume Review & AI Keyword Scan
+        </span>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-1.5 font-mono text-xs">
+          <div class="bg-slate-950/90 border border-indigo-500/40 px-2 py-1 rounded text-center min-w-[36px]">
+            <span id="timer-days" class="font-bold text-white text-sm">02</span>
+            <div class="text-[9px] text-slate-400 font-sans">d</div>
+          </div>
+          <span class="text-indigo-400 font-bold">:</span>
+          <div class="bg-slate-950/90 border border-indigo-500/40 px-2 py-1 rounded text-center min-w-[36px]">
+            <span id="timer-hours" class="font-bold text-white text-sm">18</span>
+            <div class="text-[9px] text-slate-400 font-sans">h</div>
+          </div>
+          <span class="text-indigo-400 font-bold">:</span>
+          <div class="bg-slate-950/90 border border-indigo-500/40 px-2 py-1 rounded text-center min-w-[36px]">
+            <span id="timer-minutes" class="font-bold text-white text-sm">45</span>
+            <div class="text-[9px] text-slate-400 font-sans">m</div>
+          </div>
+          <span class="text-indigo-400 font-bold">:</span>
+          <div class="bg-slate-950/90 border border-indigo-500/40 px-2 py-1 rounded text-center min-w-[36px]">
+            <span id="timer-seconds" class="font-bold text-amber-400 text-sm">12</span>
+            <div class="text-[9px] text-slate-400 font-sans">s</div>
+          </div>
+        </div>
+
+        <button onclick="toggleComponent('timer')" class="ml-3 text-slate-400 hover:text-white text-xs bg-slate-800/80 hover:bg-slate-700 px-2.5 py-1 rounded border border-slate-700">
+          Hide Timer
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= HERO SLIDER (ENABLE / DISABLE) ================= -->
+  <section id="slider-container" class="no-print w-full bg-[#090d16] border-b border-slate-800/80 py-3">
+    <div class="max-w-7xl mx-auto px-4 relative">
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/30 to-slate-900 border border-indigo-500/20 p-5 sm:p-6 shadow-xl">
+        <button onclick="toggleComponent('slider')" class="absolute top-3 right-3 text-[11px] text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700 px-2 py-0.5 rounded border border-slate-700 z-20">
+          Hide Slider
+        </button>
+
+        <div id="slider-track" class="relative min-h-[85px] flex items-center">
+          <div class="slide-item w-full flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="space-y-1 text-center sm:text-left">
+              <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                ✨ 2026 Modern Standard
+              </span>
+              <h3 class="text-base sm:text-lg font-bold text-white">Create ATS-Compliant Resumes in 3 Minutes</h3>
+              <p class="text-xs text-slate-300 max-w-xl">
+                Engineered to pass Applicant Tracking Systems used by top tech companies and recruiters.
+              </p>
+            </div>
+            <div class="shrink-0">
+              <button onclick="setTemplate('modern')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-md transition">
+                Use Modern Template
+              </button>
+            </div>
+          </div>
+
+          <div class="slide-item w-full hidden flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="space-y-1 text-center sm:text-left">
+              <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                🚀 100% Free Forever
+              </span>
+              <h3 class="text-base sm:text-lg font-bold text-white">Instant High-Resolution Vector PDF Download</h3>
+              <p class="text-xs text-slate-300 max-w-xl">
+                No watermarks, no signups, no fees. Your data stays 100% private in your browser.
+              </p>
+            </div>
+            <div class="shrink-0">
+              <button onclick="downloadPDF()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow-md transition">
+                Download Resume
+              </button>
+            </div>
+          </div>
+
+          <div class="slide-item w-full hidden flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="space-y-1 text-center sm:text-left">
+              <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                🎨 Real-Time Personalization
+              </span>
+              <h3 class="text-base sm:text-lg font-bold text-white">Choose Your Accent Colors & Typography</h3>
+              <p class="text-xs text-slate-300 max-w-xl">
+                Select between Executive Modern, Creative Two-Column, and Minimalist Tech formats.
+              </p>
+            </div>
+            <div class="shrink-0">
+              <button onclick="setTemplate('creative')" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-xl shadow-md transition">
+                Try Creative Style
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-center space-x-2 mt-2 pt-2 border-t border-slate-800/60">
+          <button onclick="prevSlide()" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+          </button>
+          <div class="flex items-center space-x-1.5" id="slider-dots">
+            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 cursor-pointer" onclick="goToSlide(0)"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-700 cursor-pointer" onclick="goToSlide(1)"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-700 cursor-pointer" onclick="goToSlide(2)"></span>
+          </div>
+          <button onclick="nextSlide()" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ADVERTISEMENT 1: UP (TOP) ================= -->
+  <section id="ad-up-container" class="ad-slot no-print w-full bg-[#080c14] border-b border-slate-800/80 py-2.5">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="relative bg-gradient-to-r from-slate-900 via-slate-850 to-indigo-950/40 rounded-xl border border-indigo-500/20 p-3 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-inner">
+        <div class="flex items-center space-x-3 text-center sm:text-left">
+          <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-widest text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded">Ad • Top</span>
+          <p id="ad-up-text" class="text-xs sm:text-sm text-slate-300">
+            <strong id="ad-up-sponsor" class="text-indigo-400 font-medium">TechHire AI:</strong> Land high-paying remote tech jobs with AI-matched referrals. Over 10,000+ open roles.
+          </p>
+        </div>
+        <div class="flex items-center space-x-3 shrink-0">
+          <a id="ad-up-cta" href="#" onclick="event.preventDefault(); alert('Top Ad Clicked!');" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm">
+            Explore Jobs →
+          </a>
+          <button onclick="document.getElementById('ad-up-container').style.display='none'" title="Hide ad" class="text-slate-500 hover:text-slate-300 text-xs px-1">✕</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= MAIN LAYOUT (LEFT AD + WORKSPACE + RIGHT AD) ================= -->
+  <div class="flex-1 max-w-[1720px] w-full mx-auto px-2 sm:px-4 py-4 flex gap-4">
+
+    <!-- ================= ADVERTISEMENT 2: LEFT SKYSCRAPER ================= -->
+    <aside id="ad-left-container" class="ad-slot no-print hidden xl:flex flex-col w-48 shrink-0">
+      <div class="sticky top-20 bg-gradient-to-b from-slate-900 via-slate-900 to-indigo-950/30 border border-slate-800 rounded-2xl p-3 flex flex-col justify-between h-[600px] shadow-lg">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[9px] uppercase tracking-wider font-bold text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">Ad • Left</span>
+            <button onclick="document.getElementById('ad-left-container').style.display='none'" class="text-slate-500 hover:text-slate-300 text-xs">✕</button>
+          </div>
+          <div class="w-full h-32 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex flex-col items-center justify-center p-3 text-center mb-3 shadow-md">
+            <svg class="w-8 h-8 text-white mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            <span id="ad-left-sponsor" class="text-xs font-bold text-white tracking-tight">CloudDeploy Pro</span>
+          </div>
+          <h4 id="ad-left-title" class="text-xs font-semibold text-slate-200 mb-1">Zero-Config Hosting</h4>
+          <p id="ad-left-text" class="text-[11px] text-slate-400 leading-relaxed">
+            Deploy fullstack web apps globally with instant SSL, automated CI/CD and edge caching.
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <div class="p-2 bg-slate-800/80 rounded-lg text-center">
+            <span class="text-[10px] text-emerald-400 font-semibold">Free $100 Credit</span>
+          </div>
+          <a id="ad-left-cta" href="#" onclick="event.preventDefault(); alert('Left Ad Clicked!');" class="block w-full text-center py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-md transition">
+            Start Free Trial
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ================= CENTER WORKSPACE ================= -->
+    <main class="flex-1 min-w-0 flex flex-col lg:flex-row gap-6 items-start">
+
+      <!-- ================= FORM EDITOR PANEL ================= -->
+      <section id="form-panel" class="w-full lg:w-[480px] shrink-0 bg-[#0f172a] border border-slate-800/90 rounded-2xl p-5 shadow-2xl space-y-6">
+        
+        <!-- Style Controls -->
+        <div class="pb-4 border-b border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+              <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+              Resume Styling
+            </h2>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Template Design</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button onclick="setTemplate('modern')" id="tpl-modern-btn" class="tpl-btn px-3 py-2 text-xs font-bold rounded-lg border border-indigo-500 bg-indigo-500/10 text-white transition">Executive</button>
+              <button onclick="setTemplate('creative')" id="tpl-creative-btn" class="tpl-btn px-3 py-2 text-xs font-medium rounded-lg border border-slate-700 bg-slate-800/50 text-slate-400 hover:text-white transition">Sidebar</button>
+              <button onclick="setTemplate('tech')" id="tpl-tech-btn" class="tpl-btn px-3 py-2 text-xs font-medium rounded-lg border border-slate-700 bg-slate-800/50 text-slate-400 hover:text-white transition">Tech Clean</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Accent Color</label>
+              <div class="flex items-center space-x-2">
+                <button onclick="setAccentColor('#4f46e5')" class="w-6 h-6 rounded-full bg-indigo-600 ring-2 ring-offset-2 ring-offset-slate-900 ring-indigo-400 transition" title="Indigo"></button>
+                <button onclick="setAccentColor('#059669')" class="w-6 h-6 rounded-full bg-emerald-600 hover:ring-2 hover:ring-offset-2 ring-offset-slate-900 ring-emerald-400 transition" title="Emerald"></button>
+                <button onclick="setAccentColor('#7c3aed')" class="w-6 h-6 rounded-full bg-purple-600 hover:ring-2 hover:ring-offset-2 ring-offset-slate-900 ring-purple-400 transition" title="Violet"></button>
+                <button onclick="setAccentColor('#e11d48')" class="w-6 h-6 rounded-full bg-rose-600 hover:ring-2 hover:ring-offset-2 ring-offset-slate-900 ring-rose-400 transition" title="Rose"></button>
+                <button onclick="setAccentColor('#0284c7')" class="w-6 h-6 rounded-full bg-sky-600 hover:ring-2 hover:ring-offset-2 ring-offset-slate-900 ring-sky-400 transition" title="Sky"></button>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Typography</label>
+              <select id="font-select" onchange="setFont(this.value)" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 outline-none font-medium">
+                <option value="font-sans">Plus Jakarta (Modern)</option>
+                <option value="font-display">Outfit (Contemporary)</option>
+                <option value="font-serif">Merriweather (Executive)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1. Personal Details -->
+        <div class="space-y-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400">1. Personal Information</h3>
+
+          <div class="flex items-center space-x-4">
+            <div class="relative w-14 h-14 rounded-full border-2 border-dashed border-slate-700 hover:border-indigo-500 overflow-hidden bg-slate-800 shrink-0 flex items-center justify-center cursor-pointer group">
+              <img id="avatar-preview" class="w-full h-full object-cover hidden" alt="Avatar">
+              <div id="avatar-placeholder" class="text-[10px] text-slate-400 text-center leading-tight">Photo</div>
+              <input type="file" id="input-avatar" accept="image/*" onchange="handleAvatarUpload(event)" class="absolute inset-0 opacity-0 cursor-pointer">
+            </div>
+            <div class="text-xs text-slate-400">
+              <span class="text-slate-200 font-medium">Profile Photo</span>
+              <p class="text-[11px] text-slate-500">Optional (JPG or PNG)</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Full Name *</label>
+              <input type="text" id="input-name" placeholder="Alex Morgan" oninput="updateResume()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-indigo-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Job Title *</label>
+              <input type="text" id="input-title" placeholder="Senior Software Engineer" oninput="updateResume()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-indigo-500 outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Email</label>
+              <input type="email" id="input-email" placeholder="alex.morgan@tech.com" oninput="updateResume()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-indigo-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Phone</label>
+              <input type="text" id="input-phone" placeholder="+1 (555) 234-5678" oninput="updateResume()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-indigo-500 outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Location</label>
+              <input type="text" id="input-location" placeholder="San Francisco, CA" oninput="updateResume()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-indigo-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Website / Portfolio</label>
+              <input type="text" id="input-website" placeholder="alexmorgan.dev" oninput="updateResume()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-indigo-500 outline-none">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">Executive Summary</label>
+            <textarea id="input-summary" rows="3" placeholder="Seasoned engineer with track record of high-concurrency systems..." oninput="updateResume()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-indigo-500 outline-none"></textarea>
+          </div>
+        </div>
+
+        <!-- 2. Work Experience -->
+        <div class="space-y-3 pt-3 border-t border-slate-800">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400">2. Experience</h3>
+            <button onclick="addExperience()" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">+ Add Job</button>
+          </div>
+          <div id="experience-list" class="space-y-3"></div>
+        </div>
+
+        <!-- 3. Education -->
+        <div class="space-y-3 pt-3 border-t border-slate-800">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400">3. Education</h3>
+            <button onclick="addEducation()" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">+ Add Degree</button>
+          </div>
+          <div id="education-list" class="space-y-3"></div>
+        </div>
+
+        <!-- 4. Skills -->
+        <div class="space-y-3 pt-3 border-t border-slate-800">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400">4. Skills</h3>
+            <button onclick="addSkill()" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">+ Add Skill</button>
+          </div>
+          <div id="skills-list" class="grid grid-cols-2 gap-2"></div>
+        </div>
+
+        <!-- 5. Projects -->
+        <div class="space-y-3 pt-3 border-t border-slate-800">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400">5. Projects</h3>
+            <button onclick="addProject()" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">+ Add Project</button>
+          </div>
+          <div id="projects-list" class="space-y-3"></div>
+        </div>
+      </section>
+
+      <!-- ================= LIVE PREVIEW CANVAS (MAGAZINE A4 SHEET) ================= -->
+      <section id="preview-panel" class="flex-1 flex flex-col items-center min-w-0 pb-16 w-full overflow-hidden">
+        
+        <div class="preview-toolbar no-print flex flex-wrap items-center justify-between w-full max-w-[210mm] mb-3 px-2 text-xs text-slate-400 gap-2">
+          <div class="flex items-center space-x-2">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]"></span>
+            <span class="font-bold text-slate-300">A4 Document Canvas</span>
+            <span class="text-[11px] text-slate-500">210 × 297 mm</span>
+          </div>
+
+          <div class="flex items-center space-x-1.5 bg-slate-900 border border-slate-800 px-2 py-1 rounded-lg">
+            <span class="text-[11px] text-slate-500">Zoom:</span>
+            <button onclick="setZoom(0.75)" class="zoom-btn px-2 py-0.5 rounded text-[11px] hover:bg-slate-800">75%</button>
+            <button onclick="setZoom(0.88)" class="zoom-btn px-2 py-0.5 rounded text-[11px] hover:bg-slate-800">88%</button>
+            <button onclick="setZoom(1.0)" class="zoom-btn px-2 py-0.5 rounded text-[11px] hover:bg-slate-800">100%</button>
+            <button onclick="setZoom('fit')" class="zoom-btn px-2 py-0.5 rounded text-[11px] bg-indigo-600 text-white font-bold">Auto Fit</button>
+          </div>
+        </div>
+
+        <div class="a4-viewport overflow-auto w-full">
+          <div id="resume-document" class="a4-paper transition-all duration-200">
+            <!-- Dynamic Content Injected Here -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ================= ADVERTISEMENT 3: RIGHT SKYSCRAPER ================= -->
+    <aside id="ad-right-container" class="ad-slot no-print hidden xl:flex flex-col w-48 shrink-0">
+      <div class="sticky top-20 bg-gradient-to-b from-slate-900 via-slate-900 to-purple-950/30 border border-slate-800 rounded-2xl p-3 flex flex-col justify-between h-[600px] shadow-lg">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[9px] uppercase tracking-wider font-bold text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">Ad • Right</span>
+            <button onclick="document.getElementById('ad-right-container').style.display='none'" class="text-slate-500 hover:text-slate-300 text-xs">✕</button>
+          </div>
+          <div class="w-full h-32 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex flex-col items-center justify-center p-3 text-center mb-3 shadow-md">
+            <svg class="w-8 h-8 text-white mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+            <span id="ad-right-sponsor" class="text-xs font-bold text-white tracking-tight">InterviewCoach</span>
+          </div>
+          <h4 id="ad-right-title" class="text-xs font-semibold text-slate-200 mb-1">Ace Tech Interviews</h4>
+          <p id="ad-right-text" class="text-[11px] text-slate-400 leading-relaxed">
+            Practice mock interviews with AI engineers. Get line-by-line code feedback and salary advice.
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <div class="p-2 bg-slate-800/80 rounded-lg text-center">
+            <span class="text-[10px] text-amber-400 font-semibold">94% Pass Rate</span>
+          </div>
+          <a id="ad-right-cta" href="#" onclick="event.preventDefault(); alert('Right Ad Clicked!');" class="block w-full text-center py-2 text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded-xl shadow-md transition">
+            Practice Now
+          </a>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ================= ADVERTISEMENT 4: DOWN (BOTTOM) ================= -->
+  <section id="ad-down-container" class="ad-slot no-print w-full bg-[#080c14] border-t border-slate-800 py-3 mt-auto">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 rounded-xl border border-indigo-500/20 p-3 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+        <div class="flex items-center space-x-3 text-center sm:text-left">
+          <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-widest text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded">Ad • Bottom</span>
+          <p id="ad-down-text" class="text-xs sm:text-sm text-slate-300">
+            <strong id="ad-down-sponsor" class="text-indigo-400 font-medium">DevCertify Academy:</strong> Get certified in Kubernetes, AWS, and Cloud Architecture with 50% discount this month.
+          </p>
+        </div>
+        <div class="flex items-center space-x-3 shrink-0">
+          <a id="ad-down-cta" href="#" onclick="event.preventDefault(); alert('Bottom Ad Clicked!');" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-sm">
+            Claim 50% Off →
+          </a>
+          <button onclick="document.getElementById('ad-down-container').style.display='none'" title="Hide ad" class="text-slate-500 hover:text-slate-300 text-xs px-1">✕</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="app-footer no-print bg-[#080c14] border-t border-slate-900 py-4 text-center text-xs text-slate-500">
+    <p>ResumeCraft — Modern Free CV Builder. 100% Client-side and ad-free in exported PDF.</p>
+  </footer>
+
+  <!-- ================= ADMIN DASHBOARD MODAL ================= -->
+  <div id="admin-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold">⚙️</div>
+          <div>
+            <h3 class="text-base font-bold text-white">Admin Dashboard</h3>
+            <p class="text-xs text-slate-400">Configure Timer, Slider, and all 4 Ad slots</p>
+          </div>
+        </div>
+        <button onclick="closeAdminModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-5 text-xs text-slate-300">
+        <!-- Timer & Slider Settings -->
+        <div class="space-y-3 pb-4 border-b border-slate-800">
+          <h4 class="font-bold text-slate-100 text-sm">⏱️ Timer & Slider Components</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700/80 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-white">Top Countdown Timer</span>
+                <input type="checkbox" id="admin-toggle-timer" onchange="toggleComponent('timer', this.checked)" class="w-4 h-4 text-indigo-600 rounded bg-slate-900 border-slate-700">
+              </div>
+              <input type="text" id="admin-timer-text" placeholder="Headline text" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white">
+            </div>
+
+            <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700/80 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-white">Hero Slider</span>
+                <input type="checkbox" id="admin-toggle-slider" onchange="toggleComponent('slider', this.checked)" class="w-4 h-4 text-indigo-600 rounded bg-slate-900 border-slate-700">
+              </div>
+              <p class="text-[11px] text-slate-400">Enable or disable promotional carousel.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Ads Settings -->
+        <div class="space-y-3">
+          <h4 class="font-bold text-slate-100 text-sm">📢 Ads Manager (4 Slots)</h4>
+
+          <!-- Ad Up -->
+          <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700/80 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-amber-400">1. Top Banner Ad (UP)</span>
+              <label class="flex items-center space-x-1.5 cursor-pointer">
+                <span class="text-[11px] text-slate-400">Enable</span>
+                <input type="checkbox" id="admin-ad-up-enable" class="w-4 h-4 text-indigo-600 rounded bg-slate-900 border-slate-700">
+              </label>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" id="admin-ad-up-sponsor" placeholder="Sponsor" class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white">
+              <input type="text" id="admin-ad-up-cta" placeholder="Button text" class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white">
+            </div>
+            <input type="text" id="admin-ad-up-text" placeholder="Ad text" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white">
+          </div>
+
+          <!-- Ad Left -->
+          <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700/80 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-cyan-400">2. Left Skyscraper Ad (LEFT)</span>
+              <label class="flex items-center space-x-1.5 cursor-pointer">
+                <span class="text-[11px] text-slate-400">Enable</span>
+                <input type="checkbox" id="admin-ad-left-enable" class="w-4 h-4 text-indigo-600 rounded bg-slate-900 border-slate-700">
+              </label>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" id="admin-ad-left-sponsor" placeholder="Sponsor" class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white">
+              <input type="text" id="admin-ad-left-cta" placeholder="Button text" class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white">
+            </div>
+            <input type="text" id="admin-ad-left-text" placeholder="Ad text" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white">
+          </div>
+
+          <!-- Ad Right -->
+          <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700/80 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-purple-400">3. Right Skyscraper Ad (RIGHT)</span>
+              <label class="flex items-center space-x-1.5 cursor-pointer">
+                <span class="text-[11px] text-slate-400">Enable</span>
+                <input type="checkbox" id="admin-ad-right-enable" class="w-4 h-4 text-indigo-600 rounded bg-slate-900 border-slate-700">
+              </label>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" id="admin-ad-right-sponsor" placeholder="Sponsor" class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white">
+              <input type="text" id="admin-ad-right-cta" placeholder="Button text" class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white">
+            </div>
+            <input type="text" id="admin-ad-right-text" placeholder="Ad text" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white">
+          </div>
+
+          <!-- Ad Down -->
+          <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700/80 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-emerald-400">4. Bottom Banner Ad (DOWN)</span>
+              <label class="flex items-center space-x-1.5 cursor-pointer">
+                <span class="text-[11px] text-slate-400">Enable</span>
+                <input type="checkbox" id="admin-ad-down-enable" class="w-4 h-4 text-indigo-600 rounded bg-slate-900 border-slate-700">
+              </label>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" id="admin-ad-down-sponsor" placeholder="Sponsor" class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white">
+              <input type="text" id="admin-ad-down-cta" placeholder="Button text" class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white">
+            </div>
+            <input type="text" id="admin-ad-down-text" placeholder="Ad text" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white">
+          </div>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
+        <button onclick="resetAdminDefaults()" class="text-xs text-rose-400 hover:text-rose-300">Reset Defaults</button>
+        <div class="flex items-center space-x-2">
+          <button onclick="closeAdminModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-medium">Cancel</button>
+          <button onclick="saveAdminSettings()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-md">Save Changes</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= REACTIVE JAVASCRIPT ================= -->
+  <script>
+    let currentTemplate = 'modern';
+    let currentAccent = '#4f46e5';
+    let currentFont = 'font-sans';
+    let avatarDataUrl = '';
+    let currentSlide = 0;
+    let sliderTimer = null;
+    let countdownInterval = null;
+
+    let experiences = [];
+    let educations = [];
+    let skills = [];
+    let projects = [];
+
+    let siteConfig = {
+      timerEnabled: true,
+      timerText: "🔥 Limited Time: Free ATS Resume Review & AI Keyword Scan",
+      sliderEnabled: true,
+      adUp: {
+        enabled: true,
+        sponsor: "TechHire AI",
+        text: "Land high-paying remote tech jobs with AI-matched referrals. Over 10,000+ open roles.",
+        cta: "Explore Jobs →"
+      },
+      adLeft: {
+        enabled: true,
+        sponsor: "CloudDeploy Pro",
+        title: "Zero-Config Hosting",
+        text: "Deploy fullstack web apps globally with instant SSL, automated CI/CD and edge caching.",
+        cta: "Start Free Trial"
+      },
+      adRight: {
+        enabled: true,
+        sponsor: "InterviewCoach",
+        title: "Ace Tech Interviews",
+        text: "Practice mock interviews with AI engineers. Get line-by-line code feedback and salary advice.",
+        cta: "Practice Now"
+      },
+      adDown: {
+        enabled: true,
+        sponsor: "DevCertify Academy",
+        text: "Get certified in Kubernetes, AWS, and Cloud Architecture with 50% discount this month.",
+        cta: "Claim 50% Off →"
+      }
+    };
+
+    const sampleData = {
+      name: "Alex Morgan",
+      title: "Senior Full-Stack Software Engineer",
+      email: "alex.morgan@techmail.io",
+      phone: "+1 (415) 890-2134",
+      location: "San Francisco, CA (Open to Remote)",
+      website: "alexmorgan.dev",
+      summary: "Results-driven Senior Full-Stack Engineer with 7+ years of experience spearheading microservice architectures, high-concurrency cloud systems, and delightful web products. Led cross-functional engineering pods, reduced cloud infrastructure expenses by 38%, and scaled customer-facing platforms to 3M+ active sessions.",
+      experiences: [
+        {
+          id: 1,
+          role: "Senior Staff Engineer",
+          company: "Vanguard Cloud Technologies",
+          location: "San Francisco, CA",
+          period: "2021 — Present",
+          description: "Architected distributed event-driven microservices using Go, Node.js, and Kafka processing 50k req/sec.\nMentored 8 mid-level engineers, instituted automated code quality gates, and boosted uptime to 99.99%.\nReduced database read latency by 45% through multi-tier Redis caching and read-replica routing."
+        },
+        {
+          id: 2,
+          role: "Full-Stack Developer",
+          company: "Nexus Labs Interactive",
+          location: "Austin, TX",
+          period: "2018 — 2021",
+          description: "Engineered responsive, accessible customer portals using Next.js, React, TypeScript, and GraphQL.\nOptimized Webpack build pipelines, trimming client bundle payloads by 42% and raising Lighthouse performance score to 98."
+        }
+      ],
+      educations: [
+        {
+          id: 1,
+          degree: "B.S. in Computer Science",
+          school: "University of California, Berkeley",
+          year: "2014 — 2018",
+          honors: "Graduated with High Honors (GPA 3.88 / 4.0)"
+        }
+      ],
+      skills: [
+        "TypeScript", "React & Next.js", "Node.js", "Go (Golang)",
+        "PostgreSQL & Redis", "Docker & Kubernetes", "AWS & GCP", "System Architecture",
+        "GraphQL & REST", "CI/CD & Terraform"
+      ],
+      projects: [
+        {
+          id: 1,
+          name: "OmniMetrics — Open-Source APM Suite",
+          link: "github.com/alexm/omni-metrics",
+          description: "Distributed telemetry exporter adopted by 12,000+ developers, supporting OpenTelemetry tracing protocols."
+        },
+        {
+          id: 2,
+          name: "FastFlow Workflow Engine",
+          link: "fastflow-demo.io",
+          description: "Serverless DAG orchestration tool allowing visual drag-and-drop workflow execution with sub-second queuing."
+        }
+      ]
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadConfigFromStorage();
+      applyConfigToUI();
+      initCountdownTimer();
+      initSlider();
+
+      const saved = localStorage.getItem('resumecraft_state');
+      if (saved) {
+        try { loadState(JSON.parse(saved)); } catch(e) { loadSampleData(); }
+      } else {
+        loadSampleData();
+      }
+      setZoom('fit');
+    });
+
+    // ================= ZOOM & VIEW MODES =================
+    function setZoom(val) {
+      const doc = document.getElementById('resume-document');
+      const buttons = document.querySelectorAll('.zoom-btn');
+      buttons.forEach(b => b.classList.remove('bg-indigo-600', 'text-white', 'font-bold'));
+
+      if (val === 'fit') {
+        const viewport = document.querySelector('.a4-viewport');
+        const availableWidth = viewport.clientWidth - 48;
+        const targetWidth = 794;
+        const scale = Math.min(1, Math.max(0.60, availableWidth / targetWidth));
+        doc.style.transform = `scale(${scale})`;
+      } else {
+        doc.style.transform = `scale(${val})`;
+      }
+
+      const activeBtn = Array.from(buttons).find(b => {
+        if (val === 'fit') return b.textContent.includes('Fit');
+        return b.textContent.includes(Math.round(val * 100) + '%');
+      });
+      if (activeBtn) activeBtn.classList.add('bg-indigo-600', 'text-white', 'font-bold');
+    }
+
+    window.addEventListener('resize', () => {
+      const activeZoomBtn = Array.from(document.querySelectorAll('.zoom-btn')).find(b => b.textContent.includes('Fit') && b.classList.contains('bg-indigo-600'));
+      if (activeZoomBtn) setZoom('fit');
+    });
+
+    function setViewMode(mode) {
+      const formPanel = document.getElementById('form-panel');
+      const previewPanel = document.getElementById('preview-panel');
+      ['split', 'form', 'preview'].forEach(b => {
+        const btn = document.getElementById(`btn-view-${b}`);
+        btn.className = (b === mode) 
+          ? "px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white shadow-sm transition"
+          : "px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-white transition";
+      });
+
+      if (mode === 'form') {
+        formPanel.style.display = 'block';
+        formPanel.className = 'w-full bg-[#0f172a] border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6';
+        previewPanel.style.display = 'none';
+      } else if (mode === 'preview') {
+        formPanel.style.display = 'none';
+        previewPanel.style.display = 'flex';
+        setZoom(1.0);
+      } else {
+        formPanel.style.display = 'block';
+        formPanel.className = 'w-full lg:w-[480px] shrink-0 bg-[#0f172a] border border-slate-800/90 rounded-2xl p-5 shadow-2xl space-y-6';
+        previewPanel.style.display = 'flex';
+        setZoom('fit');
+      }
+    }
+
+    // ================= COUNTDOWN TIMER =================
+    function initCountdownTimer() {
+      let targetTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (18 * 60 * 60 * 1000);
+      function tick() {
+        const diff = Math.max(0, targetTime - Date.now());
+        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const m = Math.floor((diff / (1000 * 60)) % 60);
+        const s = Math.floor((diff / 1000) % 60);
+
+        document.getElementById('timer-days').textContent = String(d).padStart(2, '0');
+        document.getElementById('timer-hours').textContent = String(h).padStart(2, '0');
+        document.getElementById('timer-minutes').textContent = String(m).padStart(2, '0');
+        document.getElementById('timer-seconds').textContent = String(s).padStart(2, '0');
+      }
+      tick();
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(tick, 1000);
+    }
+
+    // ================= SLIDER =================
+    function initSlider() {
+      showSlide(currentSlide);
+      startAutoSlide();
+      const slider = document.getElementById('slider-container');
+      slider.addEventListener('mouseenter', stopAutoSlide);
+      slider.addEventListener('mouseleave', startAutoSlide);
+    }
+
+    function showSlide(index) {
+      const slides = document.querySelectorAll('.slide-item');
+      slides.forEach((sl, i) => {
+        if (i === index) {
+          sl.classList.remove('hidden');
+          sl.classList.add('flex');
+        } else {
+          sl.classList.add('hidden');
+          sl.classList.remove('flex');
+        }
+      });
+      const dots = document.getElementById('slider-dots').children;
+      Array.from(dots).forEach((dot, i) => {
+        dot.className = (i === index) 
+          ? "w-2.5 h-2.5 rounded-full bg-indigo-500 cursor-pointer transition"
+          : "w-2.5 h-2.5 rounded-full bg-slate-700 cursor-pointer transition";
+      });
+      currentSlide = index;
+    }
+
+    function nextSlide() {
+      const slides = document.querySelectorAll('.slide-item');
+      showSlide((currentSlide + 1) % slides.length);
+    }
+
+    function prevSlide() {
+      const slides = document.querySelectorAll('.slide-item');
+      showSlide((currentSlide - 1 + slides.length) % slides.length);
+    }
+
+    function goToSlide(idx) { showSlide(idx); }
+    function startAutoSlide() { stopAutoSlide(); sliderTimer = setInterval(nextSlide, 5000); }
+    function stopAutoSlide() { if (sliderTimer) clearInterval(sliderTimer); }
+
+    function toggleComponent(name, explicitVal) {
+      if (name === 'timer') {
+        siteConfig.timerEnabled = (explicitVal !== undefined) ? explicitVal : !siteConfig.timerEnabled;
+        document.getElementById('timer-container').style.display = siteConfig.timerEnabled ? 'block' : 'none';
+      } else if (name === 'slider') {
+        siteConfig.sliderEnabled = (explicitVal !== undefined) ? explicitVal : !siteConfig.sliderEnabled;
+        document.getElementById('slider-container').style.display = siteConfig.sliderEnabled ? 'block' : 'none';
+      }
+      saveConfigToStorage();
+    }
+
+    // ================= ADMIN DASHBOARD =================
+    function openAdminModal() {
+      document.getElementById('admin-modal').classList.remove('hidden');
+      document.getElementById('admin-modal').classList.add('flex');
+
+      document.getElementById('admin-toggle-timer').checked = siteConfig.timerEnabled;
+      document.getElementById('admin-timer-text').value = siteConfig.timerText;
+      document.getElementById('admin-toggle-slider').checked = siteConfig.sliderEnabled;
+
+      ['up', 'left', 'right', 'down'].forEach(slot => {
+        const key = 'ad' + slot.charAt(0).toUpperCase() + slot.slice(1);
+        document.getElementById(`admin-ad-${slot}-enable`).checked = siteConfig[key].enabled;
+        document.getElementById(`admin-ad-${slot}-sponsor`).value = siteConfig[key].sponsor;
+        document.getElementById(`admin-ad-${slot}-cta`).value = siteConfig[key].cta;
+        document.getElementById(`admin-ad-${slot}-text`).value = siteConfig[key].text;
+      });
+    }
+
+    function closeAdminModal() {
+      document.getElementById('admin-modal').classList.add('hidden');
+      document.getElementById('admin-modal').classList.remove('flex');
+    }
+
+    function saveAdminSettings() {
+      siteConfig.timerEnabled = document.getElementById('admin-toggle-timer').checked;
+      siteConfig.timerText = document.getElementById('admin-timer-text').value;
+      siteConfig.sliderEnabled = document.getElementById('admin-toggle-slider').checked;
+
+      ['up', 'left', 'right', 'down'].forEach(slot => {
+        const key = 'ad' + slot.charAt(0).toUpperCase() + slot.slice(1);
+        siteConfig[key].enabled = document.getElementById(`admin-ad-${slot}-enable`).checked;
+        siteConfig[key].sponsor = document.getElementById(`admin-ad-${slot}-sponsor`).value;
+        siteConfig[key].cta = document.getElementById(`admin-ad-${slot}-cta`).value;
+        siteConfig[key].text = document.getElementById(`admin-ad-${slot}-text`).value;
+      });
+
+      saveConfigToStorage();
+      applyConfigToUI();
+      closeAdminModal();
+    }
+
+    function resetAdminDefaults() {
+      localStorage.removeItem('resumecraft_config');
+      location.reload();
+    }
+
+    function saveConfigToStorage() {
+      localStorage.setItem('resumecraft_config', JSON.stringify(siteConfig));
+    }
+
+    function loadConfigFromStorage() {
+      const saved = localStorage.getItem('resumecraft_config');
+      if (saved) {
+        try { siteConfig = Object.assign(siteConfig, JSON.parse(saved)); } catch(e){}
+      }
+    }
+
+    function applyConfigToUI() {
+      document.getElementById('timer-container').style.display = siteConfig.timerEnabled ? 'block' : 'none';
+      document.getElementById('timer-headline').textContent = siteConfig.timerText;
+      document.getElementById('slider-container').style.display = siteConfig.sliderEnabled ? 'block' : 'none';
+
+      // Up
+      document.getElementById('ad-up-container').style.display = siteConfig.adUp.enabled ? 'block' : 'none';
+      document.getElementById('ad-up-sponsor').textContent = siteConfig.adUp.sponsor + ': ';
+      document.getElementById('ad-up-text').innerHTML = `<strong class="text-indigo-400 font-medium">${siteConfig.adUp.sponsor}:</strong> ${siteConfig.adUp.text}`;
+      document.getElementById('ad-up-cta').textContent = siteConfig.adUp.cta;
+
+      // Left
+      document.getElementById('ad-left-container').style.display = siteConfig.adLeft.enabled ? 'flex' : 'none';
+      document.getElementById('ad-left-sponsor').textContent = siteConfig.adLeft.sponsor;
+      document.getElementById('ad-left-text').textContent = siteConfig.adLeft.text;
+      document.getElementById('ad-left-cta').textContent = siteConfig.adLeft.cta;
+
+      // Right
+      document.getElementById('ad-right-container').style.display = siteConfig.adRight.enabled ? 'flex' : 'none';
+      document.getElementById('ad-right-sponsor').textContent = siteConfig.adRight.sponsor;
+      document.getElementById('ad-right-text').textContent = siteConfig.adRight.text;
+      document.getElementById('ad-right-cta').textContent = siteConfig.adRight.cta;
+
+      // Down
+      document.getElementById('ad-down-container').style.display = siteConfig.adDown.enabled ? 'block' : 'none';
+      document.getElementById('ad-down-text').innerHTML = `<strong class="text-indigo-400 font-medium">${siteConfig.adDown.sponsor}:</strong> ${siteConfig.adDown.text}`;
+      document.getElementById('ad-down-cta').textContent = siteConfig.adDown.cta;
+    }
+
+    // ================= RESUME STATE & FORMS =================
+    function saveToLocalStorage() {
+      const state = {
+        name: document.getElementById('input-name').value,
+        title: document.getElementById('input-title').value,
+        email: document.getElementById('input-email').value,
+        phone: document.getElementById('input-phone').value,
+        location: document.getElementById('input-location').value,
+        website: document.getElementById('input-website').value,
+        summary: document.getElementById('input-summary').value,
+        avatarDataUrl,
+        currentTemplate,
+        currentAccent,
+        currentFont,
+        experiences,
+        educations,
+        skills,
+        projects
+      };
+      localStorage.setItem('resumecraft_state', JSON.stringify(state));
+    }
+
+    function loadState(data) {
+      document.getElementById('input-name').value = data.name || '';
+      document.getElementById('input-title').value = data.title || '';
+      document.getElementById('input-email').value = data.email || '';
+      document.getElementById('input-phone').value = data.phone || '';
+      document.getElementById('input-location').value = data.location || '';
+      document.getElementById('input-website').value = data.website || '';
+      document.getElementById('input-summary').value = data.summary || '';
+      
+      avatarDataUrl = data.avatarDataUrl || '';
+      if (avatarDataUrl) {
+        const preview = document.getElementById('avatar-preview');
+        preview.src = avatarDataUrl;
+        preview.classList.remove('hidden');
+        document.getElementById('avatar-placeholder').classList.add('hidden');
+      }
+
+      currentTemplate = data.currentTemplate || 'modern';
+      currentAccent = data.currentAccent || '#4f46e5';
+      currentFont = data.currentFont || 'font-sans';
+      
+      experiences = data.experiences || [];
+      educations = data.educations || [];
+      skills = data.skills || [];
+      projects = data.projects || [];
+
+      renderDynamicForms();
+      updateResume();
+    }
+
+    function loadSampleData() { loadState(sampleData); }
+
+    function handleAvatarUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        avatarDataUrl = event.target.result;
+        const preview = document.getElementById('avatar-preview');
+        preview.src = avatarDataUrl;
+        preview.classList.remove('hidden');
+        document.getElementById('avatar-placeholder').classList.add('hidden');
+        updateResume();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function addExperience() {
+      experiences.push({
+        id: Date.now(),
+        role: "Job Title",
+        company: "Company Name",
+        location: "City, Country",
+        period: "2022 — Present",
+        description: "Key responsibilities, technical milestones, and accomplishments."
+      });
+      renderDynamicForms();
+      updateResume();
+    }
+
+    function removeExperience(id) {
+      experiences = experiences.filter(e => e.id !== id);
+      renderDynamicForms();
+      updateResume();
+    }
+
+    function addEducation() {
+      educations.push({
+        id: Date.now(),
+        degree: "Bachelor of Science",
+        school: "University / College",
+        year: "2020",
+        honors: "Honors or GPA"
+      });
+      renderDynamicForms();
+      updateResume();
+    }
+
+    function removeEducation(id) {
+      educations = educations.filter(e => e.id !== id);
+      renderDynamicForms();
+      updateResume();
+    }
+
+    function addSkill() {
+      skills.push("New Skill");
+      renderDynamicForms();
+      updateResume();
+    }
+
+    function removeSkill(idx) {
+      skills.splice(idx, 1);
+      renderDynamicForms();
+      updateResume();
+    }
+
+    function addProject() {
+      projects.push({
+        id: Date.now(),
+        name: "Project Name",
+        link: "github.com/project",
+        description: "Engineered scalable application with modern tech."
+      });
+      renderDynamicForms();
+      updateResume();
+    }
+
+    function removeProject(id) {
+      projects = projects.filter(p => p.id !== id);
+      renderDynamicForms();
+      updateResume();
+    }
+
+    function renderDynamicForms() {
+      // Experience Form
+      document.getElementById('experience-list').innerHTML = experiences.map((exp, i) => `
+        <div class="p-3 bg-slate-800/60 border border-slate-700/80 rounded-xl space-y-2 relative">
+          <button onclick="removeExperience(${exp.id})" class="absolute top-2 right-2 text-slate-500 hover:text-rose-400 text-xs">✕ Remove</button>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" value="${escapeHtml(exp.role)}" placeholder="Role" oninput="experiences[${i}].role=this.value; updateResume();" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+            <input type="text" value="${escapeHtml(exp.company)}" placeholder="Company" oninput="experiences[${i}].company=this.value; updateResume();" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" value="${escapeHtml(exp.period)}" placeholder="Dates" oninput="experiences[${i}].period=this.value; updateResume();" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+            <input type="text" value="${escapeHtml(exp.location)}" placeholder="Location" oninput="experiences[${i}].location=this.value; updateResume();" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+          </div>
+          <textarea rows="2" placeholder="Bullet points" oninput="experiences[${i}].description=this.value; updateResume();" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white">${escapeHtml(exp.description)}</textarea>
+        </div>
+      `).join('');
+
+      // Education Form
+      document.getElementById('education-list').innerHTML = educations.map((edu, i) => `
+        <div class="p-3 bg-slate-800/60 border border-slate-700/80 rounded-xl space-y-2 relative">
+          <button onclick="removeEducation(${edu.id})" class="absolute top-2 right-2 text-slate-500 hover:text-rose-400 text-xs">✕ Remove</button>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" value="${escapeHtml(edu.degree)}" placeholder="Degree" oninput="educations[${i}].degree=this.value; updateResume();" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+            <input type="text" value="${escapeHtml(edu.school)}" placeholder="School" oninput="educations[${i}].school=this.value; updateResume();" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" value="${escapeHtml(edu.year)}" placeholder="Year" oninput="educations[${i}].year=this.value; updateResume();" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+            <input type="text" value="${escapeHtml(edu.honors)}" placeholder="Honors" oninput="educations[${i}].honors=this.value; updateResume();" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+          </div>
+        </div>
+      `).join('');
+
+      // Skills Form
+      document.getElementById('skills-list').innerHTML = skills.map((sk, i) => `
+        <div class="flex items-center space-x-1.5 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1">
+          <input type="text" value="${escapeHtml(sk)}" oninput="skills[${i}]=this.value; updateResume();" class="bg-transparent w-full text-xs text-white outline-none">
+          <button onclick="removeSkill(${i})" class="text-slate-500 hover:text-rose-400 text-xs">✕</button>
+        </div>
+      `).join('');
+
+      // Projects Form
+      document.getElementById('projects-list').innerHTML = projects.map((prj, i) => `
+        <div class="p-3 bg-slate-800/60 border border-slate-700/80 rounded-xl space-y-2 relative">
+          <button onclick="removeProject(${prj.id})" class="absolute top-2 right-2 text-slate-500 hover:text-rose-400 text-xs">✕ Remove</button>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" value="${escapeHtml(prj.name)}" placeholder="Project Name" oninput="projects[${i}].name=this.value; updateResume();" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+            <input type="text" value="${escapeHtml(prj.link)}" placeholder="Link" oninput="projects[${i}].link=this.value; updateResume();" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+          </div>
+          <textarea rows="2" placeholder="Description" oninput="projects[${i}].description=this.value; updateResume();" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white">${escapeHtml(prj.description)}</textarea>
+        </div>
+      `).join('');
+    }
+
+    function setTemplate(tpl) {
+      currentTemplate = tpl;
+      document.querySelectorAll('.tpl-btn').forEach(btn => {
+        btn.classList.remove('border-indigo-500', 'bg-indigo-500/10', 'text-white', 'font-bold');
+        btn.classList.add('border-slate-700', 'bg-slate-800/50', 'text-slate-400');
+      });
+      const activeBtn = document.getElementById(`tpl-${tpl}-btn`);
+      if (activeBtn) {
+        activeBtn.classList.remove('border-slate-700', 'bg-slate-800/50', 'text-slate-400');
+        activeBtn.classList.add('border-indigo-500', 'bg-indigo-500/10', 'text-white', 'font-bold');
+      }
+      updateResume();
+    }
+
+    function setAccentColor(color) {
+      currentAccent = color;
+      updateResume();
+    }
+
+    function setFont(fontClass) {
+      currentFont = fontClass;
+      updateResume();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ================= HIGH-END RESUME RENDER ENGINE =================
+    function updateResume() {
+      const name = document.getElementById('input-name').value || 'Alex Morgan';
+      const title = document.getElementById('input-title').value || 'Senior Software Engineer';
+      const email = document.getElementById('input-email').value;
+      const phone = document.getElementById('input-phone').value;
+      const location = document.getElementById('input-location').value;
+      const website = document.getElementById('input-website').value;
+      const summary = document.getElementById('input-summary').value;
+
+      const doc = document.getElementById('resume-document');
+      doc.className = `a4-paper text-slate-800 ${currentFont}`;
+
+      if (currentTemplate === 'creative') {
+        renderCreativeTemplate(doc, { name, title, email, phone, location, website, summary });
+      } else if (currentTemplate === 'tech') {
+        renderTechTemplate(doc, { name, title, email, phone, location, website, summary });
+      } else {
+        renderModernTemplate(doc, { name, title, email, phone, location, website, summary });
+      }
+
+      saveToLocalStorage();
+    }
+
+    // Template 1: Executive Modern
+    function renderModernTemplate(container, data) {
+      container.innerHTML = `
+        <div class="h-full p-10 flex flex-col space-y-6">
+          
+          <!-- Top Accent Banner -->
+          <div class="border-b-2 pb-5 flex items-start justify-between gap-6" style="border-color: ${currentAccent}">
+            <div class="flex-1">
+              <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 uppercase font-display">${escapeHtml(data.name)}</h1>
+              <p class="text-xs font-bold tracking-widest uppercase mt-1" style="color: ${currentAccent}">${escapeHtml(data.title)}</p>
+              
+              <!-- Contact Pill Badges with SVGs -->
+              <div class="flex flex-wrap items-center gap-2 mt-3 text-[11px] text-slate-600">
+                ${data.email ? `
+                  <span class="inline-flex items-center space-x-1 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                    <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                    <span>${escapeHtml(data.email)}</span>
+                  </span>` : ''}
+                ${data.phone ? `
+                  <span class="inline-flex items-center space-x-1 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                    <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                    <span>${escapeHtml(data.phone)}</span>
+                  </span>` : ''}
+                ${data.location ? `
+                  <span class="inline-flex items-center space-x-1 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                    <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+                    <span>${escapeHtml(data.location)}</span>
+                  </span>` : ''}
+                ${data.website ? `
+                  <span class="inline-flex items-center space-x-1 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                    <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                    <span class="font-medium" style="color: ${currentAccent}">${escapeHtml(data.website)}</span>
+                  </span>` : ''}
+              </div>
+            </div>
+
+            ${avatarDataUrl ? `
+              <img src="${avatarDataUrl}" class="w-20 h-20 rounded-2xl object-cover shadow-md border-2" style="border-color: ${currentAccent}">
+            ` : ''}
+          </div>
+
+          <!-- Summary -->
+          ${data.summary ? `
+            <div>
+              <div class="flex items-center space-x-2 mb-2">
+                <span class="w-2 h-2 rounded-full" style="background-color: ${currentAccent}"></span>
+                <h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-900">Executive Summary</h2>
+              </div>
+              <p class="text-xs text-slate-700 leading-relaxed text-justify bg-slate-50/70 p-3.5 rounded-xl border border-slate-100">${escapeHtml(data.summary)}</p>
+            </div>
+          ` : ''}
+
+          <!-- Experience with timeline indicator -->
+          ${experiences.length > 0 ? `
+            <div>
+              <div class="flex items-center space-x-2 mb-3">
+                <span class="w-2 h-2 rounded-full" style="background-color: ${currentAccent}"></span>
+                <h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-900">Professional Experience</h2>
+              </div>
+              <div class="space-y-4 border-l-2 pl-4 ml-1" style="border-color: ${currentAccent}22">
+                ${experiences.map(exp => `
+                  <div class="relative">
+                    <span class="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full border-2 bg-white" style="border-color: ${currentAccent}"></span>
+                    <div class="flex items-center justify-between">
+                      <span class="text-xs font-bold text-slate-900">${escapeHtml(exp.role)}</span>
+                      <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">${escapeHtml(exp.period)}</span>
+                    </div>
+                    <div class="text-xs font-semibold mb-1" style="color: ${currentAccent}">
+                      ${escapeHtml(exp.company)} <span class="text-slate-400 font-normal">• ${escapeHtml(exp.location)}</span>
+                    </div>
+                    <p class="text-xs text-slate-700 leading-relaxed whitespace-pre-line">${escapeHtml(exp.description)}</p>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Two Column: Education & Skills -->
+          <div class="grid grid-cols-2 gap-6 pt-1">
+            ${educations.length > 0 ? `
+              <div>
+                <div class="flex items-center space-x-2 mb-2.5">
+                  <span class="w-2 h-2 rounded-full" style="background-color: ${currentAccent}"></span>
+                  <h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-900">Education</h2>
+                </div>
+                <div class="space-y-3">
+                  ${educations.map(edu => `
+                    <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                      <div class="text-xs font-bold text-slate-900">${escapeHtml(edu.degree)}</div>
+                      <div class="text-xs text-slate-600 font-medium">${escapeHtml(edu.school)}</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-0.5">${escapeHtml(edu.year)} ${edu.honors ? '• ' + escapeHtml(edu.honors) : ''}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            ${skills.length > 0 ? `
+              <div>
+                <div class="flex items-center space-x-2 mb-2.5">
+                  <span class="w-2 h-2 rounded-full" style="background-color: ${currentAccent}"></span>
+                  <h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-900">Core Competencies</h2>
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                  ${skills.map(sk => `
+                    <span class="px-2.5 py-1 text-[11px] font-semibold rounded-lg text-slate-800 bg-slate-100 border border-slate-200/80 shadow-2xs">${escapeHtml(sk)}</span>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Projects -->
+          ${projects.length > 0 ? `
+            <div class="pt-1">
+              <div class="flex items-center space-x-2 mb-2.5">
+                <span class="w-2 h-2 rounded-full" style="background-color: ${currentAccent}"></span>
+                <h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-900">Featured Projects</h2>
+              </div>
+              <div class="grid grid-cols-2 gap-3.5">
+                ${projects.map(prj => `
+                  <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <div class="flex items-center justify-between mb-0.5">
+                      <span class="text-xs font-bold text-slate-900">${escapeHtml(prj.name)}</span>
+                      <span class="text-[10px] font-mono text-indigo-600 font-medium">${escapeHtml(prj.link)}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-600 leading-snug">${escapeHtml(prj.description)}</p>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+        </div>
+      `;
+    }
+
+    // Template 2: Creative Sidebar
+    function renderCreativeTemplate(container, data) {
+      container.innerHTML = `
+        <div class="flex h-full min-h-[297mm]">
+          
+          <!-- Left Accent Sidebar -->
+          <div class="w-1/3 p-7 text-white flex flex-col justify-between" style="background-color: ${currentAccent}">
+            <div class="space-y-6">
+              ${avatarDataUrl ? `
+                <div class="flex justify-center">
+                  <img src="${avatarDataUrl}" class="w-24 h-24 rounded-2xl object-cover border-4 border-white/30 shadow-lg">
+                </div>
+              ` : ''}
+
+              <div class="text-center">
+                <h1 class="text-xl font-extrabold tracking-tight font-display">${escapeHtml(data.name)}</h1>
+                <p class="text-xs font-semibold opacity-90 mt-1 uppercase tracking-wider">${escapeHtml(data.title)}</p>
+              </div>
+
+              <div class="space-y-2 pt-3 border-t border-white/20 text-xs">
+                <div class="font-extrabold text-[10px] uppercase tracking-widest opacity-80 mb-2">Contact</div>
+                ${data.email ? `<div class="break-all flex items-center space-x-1.5"><span class="opacity-75">✉</span><span>${escapeHtml(data.email)}</span></div>` : ''}
+                ${data.phone ? `<div class="flex items-center space-x-1.5"><span class="opacity-75">☎</span><span>${escapeHtml(data.phone)}</span></div>` : ''}
+                ${data.location ? `<div class="flex items-center space-x-1.5"><span class="opacity-75">📍</span><span>${escapeHtml(data.location)}</span></div>` : ''}
+                ${data.website ? `<div class="break-all font-semibold flex items-center space-x-1.5"><span class="opacity-75">🌐</span><span>${escapeHtml(data.website)}</span></div>` : ''}
+              </div>
+
+              ${educations.length > 0 ? `
+                <div class="space-y-2 pt-3 border-t border-white/20">
+                  <div class="font-extrabold text-[10px] uppercase tracking-widest opacity-80 mb-1">Education</div>
+                  ${educations.map(edu => `
+                    <div class="text-xs bg-white/10 p-2.5 rounded-lg border border-white/10">
+                      <div class="font-bold">${escapeHtml(edu.degree)}</div>
+                      <div class="opacity-90 text-[11px]">${escapeHtml(edu.school)}</div>
+                      <div class="opacity-75 text-[10px] font-mono">${escapeHtml(edu.year)}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+
+              ${skills.length > 0 ? `
+                <div class="space-y-2 pt-3 border-t border-white/20">
+                  <div class="font-extrabold text-[10px] uppercase tracking-widest opacity-80 mb-1">Skills</div>
+                  <div class="flex flex-wrap gap-1.5">
+                    ${skills.map(sk => `
+                      <span class="px-2 py-0.5 text-[10px] rounded-md bg-white/20 text-white font-semibold backdrop-blur-xs">${escapeHtml(sk)}</span>
+                    `).join('')}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+
+          <!-- Right Content Pane -->
+          <div class="w-2/3 p-8 sm:p-10 space-y-6 bg-white">
+            ${data.summary ? `
+              <div>
+                <h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-800 mb-2 border-b pb-1">About Me</h2>
+                <p class="text-xs text-slate-600 leading-relaxed">${escapeHtml(data.summary)}</p>
+              </div>
+            ` : ''}
+
+            ${experiences.length > 0 ? `
+              <div>
+                <h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-800 mb-3 border-b pb-1">Experience</h2>
+                <div class="space-y-4">
+                  ${experiences.map(exp => `
+                    <div>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-900">${escapeHtml(exp.role)}</span>
+                        <span class="text-[10px] font-mono text-slate-500">${escapeHtml(exp.period)}</span>
+                      </div>
+                      <div class="text-xs font-semibold text-slate-600 mb-1">${escapeHtml(exp.company)} • ${escapeHtml(exp.location)}</div>
+                      <p class="text-xs text-slate-600 leading-relaxed whitespace-pre-line">${escapeHtml(exp.description)}</p>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            ${projects.length > 0 ? `
+              <div>
+                <h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-800 mb-2 border-b pb-1">Projects</h2>
+                <div class="space-y-3">
+                  ${projects.map(prj => `
+                    <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                      <div class="text-xs font-bold text-slate-900">${escapeHtml(prj.name)} <span class="font-normal text-[10px] text-slate-400 font-mono">(${escapeHtml(prj.link)})</span></div>
+                      <p class="text-xs text-slate-600 leading-relaxed mt-0.5">${escapeHtml(prj.description)}</p>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+
+        </div>
+      `;
+    }
+
+    // Template 3: Tech Minimalist
+    function renderTechTemplate(container, data) {
+      container.innerHTML = `
+        <div class="h-full p-10 flex flex-col space-y-5 font-mono">
+          <div class="flex items-center justify-between border-b-2 pb-4" style="border-color:${currentAccent}">
+            <div>
+              <h1 class="text-2xl font-bold tracking-tight text-slate-900 font-sans">${escapeHtml(data.name)}</h1>
+              <p class="text-xs font-medium text-slate-600 mt-0.5">${escapeHtml(data.title)}</p>
+            </div>
+            <div class="text-right text-[11px] text-slate-500 space-y-0.5">
+              ${data.email ? `<div>${escapeHtml(data.email)}</div>` : ''}
+              ${data.phone ? `<div>${escapeHtml(data.phone)}</div>` : ''}
+              ${data.location ? `<div>${escapeHtml(data.location)}</div>` : ''}
+              ${data.website ? `<div class="font-bold" style="color:${currentAccent}">${escapeHtml(data.website)}</div>` : ''}
+            </div>
+          </div>
+
+          ${data.summary ? `
+            <div class="text-xs text-slate-700 leading-relaxed border-l-2 pl-3 py-1 font-sans" style="border-color:${currentAccent}">
+              ${escapeHtml(data.summary)}
+            </div>
+          ` : ''}
+
+          ${experiences.length > 0 ? `
+            <div>
+              <h2 class="text-[11px] uppercase font-bold text-slate-400 mb-2">// EXPERIENCE</h2>
+              <div class="space-y-3.5">
+                ${experiences.map(exp => `
+                  <div>
+                    <div class="flex items-baseline justify-between text-xs">
+                      <span class="font-bold text-slate-900">${escapeHtml(exp.role)} <span class="font-normal text-slate-600">@ ${escapeHtml(exp.company)}</span></span>
+                      <span class="text-[10px] text-slate-400">${escapeHtml(exp.period)}</span>
+                    </div>
+                    <p class="text-xs text-slate-600 mt-1 font-sans whitespace-pre-line leading-relaxed">${escapeHtml(exp.description)}</p>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          ${skills.length > 0 ? `
+            <div>
+              <h2 class="text-[11px] uppercase font-bold text-slate-400 mb-1.5">// TECH STACK</h2>
+              <div class="flex flex-wrap gap-1">
+                ${skills.map(sk => `
+                  <span class="px-2 py-0.5 text-[10px] bg-slate-100 rounded text-slate-800 border border-slate-200">${escapeHtml(sk)}</span>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          ${educations.length > 0 ? `
+            <div>
+              <h2 class="text-[11px] uppercase font-bold text-slate-400 mb-1.5">// EDUCATION</h2>
+              <div class="space-y-1.5">
+                ${educations.map(edu => `
+                  <div class="flex items-baseline justify-between text-xs">
+                    <div><strong class="text-slate-800">${escapeHtml(edu.degree)}</strong> — ${escapeHtml(edu.school)}</div>
+                    <span class="text-[10px] text-slate-400">${escapeHtml(edu.year)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          ${projects.length > 0 ? `
+            <div>
+              <h2 class="text-[11px] uppercase font-bold text-slate-400 mb-1.5">// PROJECTS</h2>
+              <div class="space-y-2">
+                ${projects.map(prj => `
+                  <div class="text-xs">
+                    <span class="font-bold text-slate-900">${escapeHtml(prj.name)}</span>
+                    <span class="text-[10px] text-indigo-600 ml-1">[${escapeHtml(prj.link)}]</span>
+                    <p class="text-slate-600 mt-0.5 font-sans">${escapeHtml(prj.description)}</p>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // ================= 1-CLICK FREE PDF EXPORT =================
+    function downloadPDF() {
+      const element = document.getElementById('resume-document');
+      const name = document.getElementById('input-name').value || 'Resume';
+      const filename = `${name.replace(/\s+/g, '_')}_CV.pdf`;
+
+      const prevTransform = element.style.transform;
+      element.style.transform = 'scale(1)';
+
+      const opt = {
+        margin:       [0, 0, 0, 0],
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      const btn = event.currentTarget;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = `<span>Exporting Free PDF...</span>`;
+      btn.disabled = true;
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        element.style.transform = prevTransform;
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }).catch(err => {
+        console.error("PDF export fallback:", err);
+        element.style.transform = prevTransform;
+        window.print();
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      });
+    }
+  </script>
+</body>
+</html>
